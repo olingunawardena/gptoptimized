@@ -1,100 +1,64 @@
 # -------------------------------------------------------------------------
-# GPTOptimizeddd v3.0 - Modern Web UI Edition
+# GPTOptimizeddd v3.1 - Solid WPF Edition (Dark Mode)
 # -------------------------------------------------------------------------
 
-# 1. Admin Check
+# 1. Admin Auto-Relaunch
 if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    powershell -Command "Start-Process powershell -ArgumentList '-ExecutionPolicy Bypass -File ""$PSCommandPath""' -Verb RunAs"
+    Start-Process powershell.exe "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
     exit
 }
 
-# 2. Add required Assemblies for the UI
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName PresentationFramework, System.Drawing, System.Windows.Forms
 
-# 3. The HTML/CSS Design (Modern Dark Theme)
-$HTML = @"
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { 
-            background: #0f0f0f; color: white; font-family: 'Segoe UI', sans-serif; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0;
-        }
-        .container { 
-            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);
-            padding: 30px; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center; width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        h1 { color: #0078d4; margin-bottom: 20px; font-weight: 300; }
-        .btn {
-            background: #0078d4; border: none; color: white; padding: 12px 20px;
-            margin: 10px 0; width: 100%; border-radius: 8px; cursor: pointer;
-            transition: 0.3s; font-size: 14px;
-        }
-        .btn:hover { background: #005a9e; transform: scale(1.02); }
-        .btn-reset { background: #444; }
-        .btn-reset:hover { background: #666; }
-        .status { font-size: 12px; color: #888; margin-top: 15px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>GPTOptimizeddd</h1>
-        <button class="btn" onclick="window.chrome.webview.postMessage('Boost')">🚀 ULTIMATE BOOST</button>
-        <button class="btn" onclick="window.chrome.webview.postMessage('Fortnite')">🎯 FORTNITE MODE</button>
-        <button class="btn btn-reset" onclick="window.chrome.webview.postMessage('Reset')">🔄 RESET DEFAULTS</button>
-        <div class="status" id="status">Status: Ready to Optimize</div>
-    </div>
-    <script>
-        window.chrome.webview.addEventListener('message', arg => {
-            document.getElementById('status').innerText = 'Status: ' + arg.data;
-        });
-    </script>
-</body>
-</html>
+# 2. The Design (XAML) - Modern Dark Mode
+[xml]$XAML = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2000/xaml/presentation"
+        Title="GPTOptimizeddd" Height="450" Width="400" Background="#121212" WindowStartupLocation="CenterScreen">
+    <StackPanel Margin="20">
+        <TextBlock Text="GPTOptimizeddd" Foreground="#0078D4" FontSize="28" HorizontalAlignment="Center" Margin="0,0,0,20" FontWeight="Bold"/>
+        
+        <Button Name="BoostBtn" Content="🚀 ULTIMATE BOOST" Height="50" Margin="0,10" Background="#0078D4" Foreground="White" BorderThickness="0" Cursor="Hand"/>
+        <Button Name="FortniteBtn" Content="🎯 FORTNITE / COMP MODE" Height="50" Margin="0,10" Background="#1E1E1E" Foreground="White" BorderThickness="1" BorderBrush="#333" Cursor="Hand"/>
+        <Button Name="RobloxBtn" Content="🎮 ROBLOX / MINECRAFT" Height="50" Margin="0,10" Background="#1E1E1E" Foreground="White" BorderThickness="1" BorderBrush="#333" Cursor="Hand"/>
+        <Button Name="ResetBtn" Content="🔄 RESET TO DEFAULTS" Height="50" Margin="0,10" Background="#444" Foreground="White" BorderThickness="0" Cursor="Hand"/>
+        
+        <TextBlock Name="StatusTxt" Text="Status: Ready" Foreground="#888" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+    </StackPanel>
+</Window>
 "@
 
-# 4. Create the Windows Form to hold the Web View
-$Form = New-Object System.Windows.Forms.Form
-$Form.Text = "GPTOptimizeddd Control Panel"
-$Form.Size = New-Object System.Drawing.Size(420, 500)
-$Form.StartPosition = "CenterScreen"
-$Form.BackColor = [System.Drawing.Color]::FromArgb(15, 15, 15)
+# 3. Load the Window
+$reader = New-Object System.Xml.XmlNodeReader $XAML
+$Form = [Windows.Markup.XamlReader]::Load($reader)
 
-$WebView = New-Object Microsoft.Web.WebView2.WinForms.WebView2
-$WebView.Dock = "Fill"
-$Form.Controls.Add($WebView)
+# 4. Connect the Buttons to Actions
+$BoostBtn = $Form.FindName("BoostBtn")
+$FortniteBtn = $Form.FindName("FortniteBtn")
+$RobloxBtn = $Form.FindName("RobloxBtn")
+$ResetBtn = $Form.FindName("ResetBtn")
+$StatusTxt = $Form.FindName("StatusTxt")
 
-# 5. Handle Communication between Web UI and PowerShell
-$Action = {
-    param($sender, $e)
-    $msg = $e.WebMessageAsJson.Replace('"','')
-    
-    switch ($msg) {
-        "Boost" {
-            powercfg /setactive SCHEME_MIN
-            Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name "NetworkThrottlingIndex" -Value 0xffffffff
-            $WebView.CoreWebView2.PostWebMessageAsString("System Boosted!")
-        }
-        "Fortnite" {
-            Get-Process "Fortnite*" -ErrorAction SilentlyContinue | ForEach-Object { $_.PriorityClass = "High" }
-            $WebView.CoreWebView2.PostWebMessageAsString("Fortnite Optimized!")
-        }
-        "Reset" {
-            powercfg /setactive SCHEME_BALANCED
-            Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name "NetworkThrottlingIndex" -Value 10
-            $WebView.CoreWebView2.PostWebMessageAsString("Reset to Defaults!")
-        }
-    }
-}
-
-# 6. Initialize and Launch
-$asyncInit = $WebView.EnsureCoreWebView2Async()
-$WebView.Add_CoreWebView2InitializationCompleted({
-    $WebView.NavigateToString($HTML)
-    $WebView.Add_WebMessageReceived($Action)
+$BoostBtn.Add_Click({
+    powercfg /setactive SCHEME_MIN
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name "NetworkThrottlingIndex" -Value 0xffffffff
+    $StatusTxt.Text = "Status: Ultimate Boost Applied!"
 })
 
-$Form.ShowDialog()
+$FortniteBtn.Add_Click({
+    Get-Process "Fortnite*" -ErrorAction SilentlyContinue | ForEach-Object { $_.PriorityClass = "High" }
+    $StatusTxt.Text = "Status: Fortnite Priority Set to High!"
+})
+
+$RobloxBtn.Add_Click({
+    [System.GC]::Collect()
+    $StatusTxt.Text = "Status: RAM Flushed for Roblox/MC!"
+})
+
+$ResetBtn.Add_Click({
+    powercfg /setactive SCHEME_BALANCED
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name "NetworkThrottlingIndex" -Value 10
+    $StatusTxt.Text = "Status: Restored to Default Settings."
+})
+
+# 5. Launch the App
+$Form.ShowDialog() | Out-Null
